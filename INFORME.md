@@ -1,47 +1,64 @@
-# INFORME DE INSTALACIÓN DE xv6
+# Informe de Implementación de la Llamada al Sistema `getppid()` en xv6
 
-## Pasos Seguidos para Instalar xv6
+## Funcionamiento de la Llamada al Sistema
 
-1. **Clonar el Repositorio de xv6:**
-    ```bash
-    git clone https://github.com/aliturriaga/xv6-riscv.git
-    cd xv6-riscv
-    ```
+### `getppid()`
 
-2. **Crear una Nueva Rama:**
-    ```bash
-    git checkout -b tarea0
-    ```
+**Descripción**: La llamada al sistema `getppid()` permite a un proceso obtener el ID del proceso padre que lo creó. Esta funcionalidad es útil para la gestión de procesos y para que los procesos puedan identificar su jerarquía.
 
-3. **Instalar Dependencias Necesarias:**
-    Instalación de GCC y binutils para la arquitectura RISC-V:
-    ```bash
-    sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu
-    sudo apt install qemu-system-misc
-    ```
+**Implementación**:
+- **Archivo**: `kernel/sysproc.c`
+- **Función**:
+  uint64 sys_getppid(void)
+  {
+      return myproc()->parent->pid;
+  }
+Uso en el Programa de Prueba:
 
-4. **Compilar xv6:**
-    ```bash
-    make
-    ```
+En el programa de prueba yosoytupadre.c, se llama a getppid() para obtener y mostrar el ID del proceso padre.
+Explicación de las Modificaciones Realizadas
+Modificación de sysproc.c:
 
-5. **Ejecutar xv6:**
-    ```bash
-    make qemu
-    ```
+Se implementó la función sys_getppid() para que retorne el ID del proceso padre del proceso actual.
+La implementación accede al proceso actual mediante myproc() y retorna el PID del proceso padre.
+Modificación de syscall.h:
 
-## Problemas Encontrados y Soluciones
+Se agregó la declaración de la nueva llamada al sistema:
 
-### Problema 1: Error al encontrar GCC/binutils para RISC-V
-- **Mensaje de error:** "Couldn't find a riscv64 version of GCC/binutils."
-- **Solución:** Se instalaron los paquetes `gcc-riscv64-linux-gnu` y `binutils-riscv64-linux-gnu` con `apt`.
+uint64 sys_getppid(void);
+Modificación de syscall.c:
 
-### Problema 2: Error "qemu-system-riscv64: No such file or directory"
-- **Mensaje de error:** "make: qemu-system-riscv64: No such file or directory"
-- **Solución:** Se instaló QEMU con soporte para RISC-V utilizando `sudo apt install qemu-system-misc`.
+Se añadió la llamada al sistema en la tabla syscalls:
 
-## Confirmación de que xv6 está Funcionando Correctamente
+[SYS_getppid] sys_getppid,
+Modificación de user.h:
 
-El sistema operativo xv6 ha iniciado correctamente en el emulador QEMU para RISC-V. Se observa el siguiente mensaje de inicio:
-xv6 kernel is booting hart 1 starting hart 2 starting init: starting sh
-Se pudo interactuar con el sistema utilizando comandos en la consola de xv6, como `ls`, `echo`, y `cat`. La instalación ha sido exitosa y el sistema operativo está funcionando correctamente.
+Se agregó la declaración de la llamada al sistema para su uso en el espacio de usuario:
+
+int getppid(void);
+Creación del Programa de Prueba:
+
+Se creó yosoytupadre.c en la carpeta user para probar la llamada al sistema getppid().
+Contenido de yosoytupadre.c:
+
+
+#include "types.h"
+#include "user.h"
+
+int main(void)
+{
+    int ppid;
+    
+    ppid = getppid();
+    printf(1, "PPID: %d\n", ppid);
+    exit();
+}
+Dificultades Encontradas y Cómo se Resolvían
+Errores de Tipos en la Declaración y Definición:
+
+Problema: Hubo errores debido a tipos incompatibles en la declaración y definición de la función sys_getppid().
+Solución: Se aseguró que la declaración y la definición coincidieran en el tipo de retorno y los parámetros, utilizando uint64 en ambos lugares.
+Errores de Inclusión en el Programa de Prueba:
+
+Problema: El programa de prueba yosoytupadre.c no encontraba la definición de getppid().
+Solución: Se verificó que la función getppid() estuviera correctamente declarada en user.h y se incluyeron los encabezados necesarios en el programa de prueba.
