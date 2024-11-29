@@ -1,44 +1,57 @@
-# Protección de Memoria en xv6
+# Informe Tarea 4
 
-## Objetivo
+## Descripción
 
-Implementar un sistema de protección de memoria en xv6 que permita marcar regiones de memoria como solo lectura mediante la función `mprotect` y revertir esa protección con `munprotect`. Este sistema permite controlar los permisos de memoria en regiones específicas para impedir o permitir la escritura en ellas.
+En esta tarea se implementó un sistema de gestión de permisos para archivos en un sistema operativo basado en xv6. Se añadió un campo de permisos en los inodos, se implementó la llamada al sistema `chmod` para modificar dichos permisos y se realizaron pruebas para asegurar el correcto funcionamiento de estas funcionalidades.
 
-## Funcionamiento de `mprotect` y `munprotect`
+## Implementación
 
-- **`mprotect(void *addr, int len)`**:
-  - Marca una región de memoria, comenzando en `addr` y con longitud `len` en páginas, como solo lectura.
-  - Modifica el bit de escritura (`PTE_W`) en la tabla de páginas, deshabilitándolo para cada página en el rango, lo cual bloquea la escritura.
+1. **Archivo de Pruebas**
+   - Se creó el archivo `perm_test.c` y se agregó al `Makefile` para permitir su compilación y ejecución durante las pruebas.
 
-- **`munprotect(void *addr, int len)`**:
-  - Rehabilita el permiso de escritura para una región de memoria previamente protegida.
-  - Activa el bit de escritura (`PTE_W`) para permitir tanto lectura como escritura en la región de memoria especificada.
+2. **Modificación de la Estructura de Inodos**
+   - Se observó la estructura de inodos en `file.h` y se añadió el campo `permissions` para gestionar los modos asignados a los archivos.
 
-Ambas funciones verifican que las direcciones de memoria sean válidas y que las páginas estén presentes en la tabla de páginas del proceso.
+3. **Llamada al Sistema `chmod`**
+   - Se implementó la lógica para cambiar los permisos de los archivos a través de la llamada al sistema `chmod`.
+   - La lógica se incluyó en `sysfile.c`, donde se gestionan los permisos predeterminados y el comportamiento del sistema según los valores de permisos. Por ejemplo, no se permite escribir en archivos de solo lectura.
 
-## Modificaciones Realizadas
+4. **Definición de la Llamada al Sistema**
+   - En `syscall.h` se definió la llamada `#define SYS_chmod 24`.
+   - En `user.h`, se agregó la declaración `int chmod(const char*, int);`, donde el primer argumento es el archivo y el segundo es el modo que se asigna.
+   - En `syscall.c`, se definió la función `extern uint64 sys_chmod(void);` y se vinculó con `SYS_chmod`.
+   - En `usys.pl`, se añadió la entrada `entry("chmod");` para hacer accesible la llamada al espacio de usuario.
 
-1. **Implementación en `vm.c`**:
-   - Se añadieron `mprotect` y `munprotect`, que recorren cada página en el rango especificado y ajustan el bit de escritura en la tabla de páginas utilizando `walk`.
+5. **Pruebas**
+   - Se añadieron pruebas en `perm_test.c` para validar el comportamiento del sistema con respecto a los permisos. Se verificaron diferentes casos de uso para asegurarse de que las reglas de permisos se respetaran correctamente.
 
-2. **Definición de Syscalls**:
-   - Se asignaron números de syscall en `syscall.h` como `#define SYS_mprotect 22` y `#define SYS_munprotect 23`.
-   - En `syscall.c`, se registraron `sys_mprotect` y `sys_munprotect` en el arreglo de syscalls.
+## Dificultades Encontradas y Soluciones Implementadas
 
-3. **Declaraciones en `user.h` y Entradas en `usys.pl`**:
-   - Se declararon `mprotect` y `munprotect` en `user.h` para el uso en programas de usuario.
-   - En `usys.pl`, se añadieron `entry("mprotect")` y `entry("munprotect")`.
+1. **Gestión de permisos en inodos**
+   - **Dificultad**: La estructura de inodos no incluía un campo para permisos.
+   - **Solución**: Se añadió un campo `permissions` en `file.h` y se ajustó la lógica en `sysfile.c` para manejar los permisos.
 
-4. **Definición de las Funciones en `sysproc.c`**:
-   - Se añadieron `sys_mprotect` y `sys_munprotect` para redirigir las llamadas del usuario a las funciones definidas en `vm.c`.
+2. **Restricciones según permisos**
+   - **Dificultad**: Impedir operaciones no permitidas según los permisos (como escribir en archivos de solo lectura).
+   - **Solución**: Se añadió lógica en `sysfile.c` para verificar permisos antes de realizar operaciones en los archivos.
 
-5. **Modificación en el `Makefile`**:
-   - Se añadió `memprotecttest` a la lista de programas de usuario `UPROGS` en el `Makefile` para que esté disponible para pruebas.
+3. **Implementación de la llamada al sistema `chmod`**
+   - **Dificultad**: Definir y vincular correctamente la nueva llamada `chmod`.
+   - **Solución**: Se definió la llamada en `syscall.h`, `syscall.c`, y se actualizó `usys.pl` para su uso en el espacio de usuario.
 
-6. **Programa de Prueba `memprotecttest.c`**:
-   - Se creó `memprotecttest.c` para validar la funcionalidad:
-     - Reserva una página de memoria.
-     - Llama a `mprotect` para protegerla y luego intenta escribir en ella.
-     - Llama a `munprotect` para desproteger la página y vuelve a escribir en ella, verificando que los permisos se restauraron.
+4. **Pruebas y validación**
+   - **Dificultad**: Asegurar que las modificaciones no afectaran otras partes del sistema.
+   - **Solución**: Se crearon pruebas en `perm_test.c` para verificar que los permisos se asignaran y respetaran correctamente.
 
-Estas modificaciones permiten un mayor control sobre los permisos de memoria en xv6, mejorando la seguridad en el manejo de memoria de los procesos.
+---
+
+## Instrucciones de Compilación
+
+1. Para compilar el proyecto, use el comando `make` en la raíz del proyecto.
+2. Para ejecutar las pruebas, utilice el comando correspondiente para ejecutar el archivo `perm_test.c`.
+
+---
+
+## Conclusión
+
+La tarea permitió implementar un sistema de gestión de permisos robusto que respeta las reglas definidas en los inodos. Las pruebas realizadas confirmaron que las funcionalidades de `chmod` y las restricciones de permisos funcionan correctamente.

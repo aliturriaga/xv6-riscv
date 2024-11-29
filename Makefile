@@ -141,7 +141,8 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_prioritytest\
-	$U/_memprotecttest
+	$U/_memprotecttest\
+	$U/_perm_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
